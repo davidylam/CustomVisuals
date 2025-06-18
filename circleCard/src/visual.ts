@@ -72,6 +72,7 @@ export class Visual implements IVisual {
      * This method is called once every time we open properties pane or when the user edit any format property. 
      */
     public getFormattingModel(): powerbi.visuals.FormattingModel {
+        console.log("getFormattingModel");
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 }
