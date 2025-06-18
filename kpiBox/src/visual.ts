@@ -33,45 +33,62 @@ import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructor
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 
+import * as d3 from "d3";
+type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
+
 import { VisualFormattingSettingsModel } from "./settings";
 
 export class Visual implements IVisual {
-    private target: HTMLElement;
-    private updateCount: number;
-    private textNode: Text;
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
+    private svg: Selection<SVGElement>;
+    private kpiBox: Selection<SVGElement>;
+    private labelBox: Selection<SVGElement>;
+    private kpiText: Selection<SVGElement>;
+    private labelText: Selection<SVGElement>;
 
     constructor(options: VisualConstructorOptions) {
         console.log('Visual constructor', options);
         this.formattingSettingsService = new FormattingSettingsService();
-        this.target = options.element;
-        this.updateCount = 0;
-        if (document) {
-            const new_p: HTMLElement = document.createElement("p");
-            new_p.appendChild(document.createTextNode("Update count:"));
-            const new_em: HTMLElement = document.createElement("em");
-            this.textNode = document.createTextNode(this.updateCount.toString());
-            new_em.appendChild(this.textNode);
-            new_p.appendChild(new_em);
-            this.target.appendChild(new_p);
-        }
+        this.svg = d3.select(options.element).append('svg').classed('kpiBox',true);
+        this.kpiBox = this.svg.append("rect");
+        this.labelBox = this.svg.append("rect");
+        this.kpiText = this.svg.append("text");
+        this.labelText = this.svg.append("text");
     }
 
     public update(options: VisualUpdateOptions) {
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews[0]);
-
         console.log('Visual update', options);
-        if (this.textNode) {
-            this.textNode.textContent = options.dataViews[0].single.value.toString();
-        }
-    }
+        
+        let viewport = options.viewport;
+        let dataView = options.dataViews[0];
 
+        console.log("single", dataView.single.value.toString());
+
+        this.svg.attr('width',viewport.width).attr('height',viewport.height);
+        this.kpiBox.attr('width', viewport.width).attr('height', viewport.height).attr('fill', 'aliceblue');
+        this.labelBox.attr('width', viewport.width).attr('height', 20).attr('fill', 'pink');
+        this.labelText.attr('text-anchor', 'start')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('y', 10)
+                        .attr('class', 'kpiLabel')
+                        .text(dataView.metadata.columns[0].displayName);
+        
+        this.kpiText.attr('text-anchor', 'middle')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('y', viewport.height/2)
+                        .attr('x', viewport.width/2)
+                        .attr('class', 'kpiNumber')
+                        .text(dataView.single.value.toString());
+    }
+    
     /**
      * Returns properties pane formatting model content hierarchies, properties and latest formatting values, Then populate properties pane.
      * This method is called once every time we open properties pane or when the user edit any format property. 
-     */
-    public getFormattingModel(): powerbi.visuals.FormattingModel {
+    */
+   public getFormattingModel(): powerbi.visuals.FormattingModel {
+        console.log('getFormattingModel');
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 }
